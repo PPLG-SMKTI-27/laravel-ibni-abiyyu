@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\PortfolioController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProjectController;
 
 // Route utama menampilkan portofolio
-Route::get('/', [ProjectController::class, 'index']);
+Route::get('/', [PortfolioController::class, 'index']);
 
-// Route untuk halaman project
-Route::get('/project', [ProjectController::class, 'projects']);
+// Fallback untuk semua route yang tidak terdaftar
+Route::any('{any}', function () {
+    return redirect('/');
+})->where('any', '.*');
