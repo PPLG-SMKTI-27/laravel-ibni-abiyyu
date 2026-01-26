@@ -794,6 +794,47 @@
                 gap: 15px;
             }
         }
+
+        /* Tambahkan di style.blade.php */
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    padding: 12px 20px;
+    border-radius: 8px;
+    display: inline-block;
+    animation: fadeIn 0.5s ease;
+    border-left: 4px solid #28a745;
+}
+
+.alert-error {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 12px 20px;
+    border-radius: 8px;
+    display: inline-block;
+    animation: fadeIn 0.5s ease;
+    border-left: 4px solid #dc3545;
+}
+
+.alert-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    padding: 12px 20px;
+    border-radius: 8px;
+    display: inline-block;
+    animation: fadeIn 0.5s ease;
+    border-left: 4px solid #17a2b8;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    padding: 12px 20px;
+    border-radius: 8px;
+    display: inline-block;
+    animation: fadeIn 0.5s ease;
+    border-left: 4px solid #ffc107;
+}   
     </style>
     <!-- Font Awesome untuk Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

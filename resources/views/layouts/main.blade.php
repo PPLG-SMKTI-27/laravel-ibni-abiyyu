@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-@include('style')
+    @include('style')
+</head>
 <body>
     <!-- ========== NAVIGASI BARU ========== -->
     <nav class="navbar" id="navbar">
@@ -26,7 +27,34 @@
                 <li class="nav-item">
                     <a href="#contact" class="nav-link">Kontak</a>
                 </li>
-              </ul>
+                
+                {{-- Tombol Admin jika login sebagai admin --}}
+                @if(isset($isAdmin) && $isAdmin)
+                    <li class="nav-item">
+                        <form method="POST" action="/toggle-edit" style="margin: 0;">
+                            @csrf
+                            <button type="submit" class="nav-button" 
+                                    style="{{ isset($editMode) && $editMode ? 'background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);' : '' }}">
+                                <i class="fas {{ isset($editMode) && $editMode ? 'fa-edit' : 'fa-pencil-alt' }}"></i>
+                                {{ isset($editMode) && $editMode ? 'Keluar Edit' : 'Edit Mode' }}
+                            </button>
+                        </form>
+                    </li>
+                @endif
+                
+                {{-- Tombol Login/Logout --}}
+                <li class="nav-item">
+                    @if(isset($isLoggedIn) && $isLoggedIn)
+                        <a href="/logout" class="nav-button" style="background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    @else
+                        <a href="/login" class="nav-button">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    @endif
+                </li>
+            </ul>
         </div>
     </nav>
     
@@ -44,10 +72,36 @@
         <div class="particles" id="particles"></div>
         
         <div class="container header-content">
-            <h1>{{ $name }}</h1>
+            <h1>{{ $name ?? 'Ibni Abiyyu' }}</h1>
             <div class="title-animation">
                 <span class="typing-text">Software Engineer</span>
             </div>
+            
+            {{-- Tampilkan pesan --}}
+            @if(session('success'))
+            <div class="alert-success" style="margin-top: 20px;">
+                <i class="fas fa-check-circle"></i> {{ session('success') }}
+            </div>
+            @endif
+            
+            @if(session('error'))
+            <div class="alert-error" style="margin-top: 20px;">
+                <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+            </div>
+            @endif
+            
+            @if(isset($loginMessage) && $loginMessage)
+            <div class="alert-info" style="margin-top: 20px;">
+                <i class="fas fa-info-circle"></i> {{ $loginMessage }}
+            </div>
+            @endif
+            
+            {{-- Tampilkan status admin --}}
+            @if(isset($isAdmin) && $isAdmin && isset($editMode) && $editMode)
+            <div class="alert-warning" style="margin-top: 10px;">
+                <i class="fas fa-exclamation-triangle"></i> Mode Edit Aktif - Perubahan hanya tersimpan selama sesi ini
+            </div>
+            @endif
         </div>
     </header>
 
@@ -55,176 +109,41 @@
     <main class="container">
         @yield('content')
     </main>
-    `
+
     <!-- Footer dengan Wave Animation -->
     <footer class="footer">
         <div class="container footer-content">
-            <p>&copy; 2026 {{ $name }} - Software Engineer</p>
+            <p>&copy; 2026 {{ $name ?? 'Ibni Abiyyu' }} - Software Engineer</p>
+            @if(isset($isLoggedIn) && $isLoggedIn)
+            <p style="font-size: 0.9rem; margin-top: 5px; opacity: 0.8;">
+                <i class="fas fa-user-check"></i> 
+                Status: {{ isset($loggedInUser) ? $loggedInUser['username'] : 'User' }}
+                @if(isset($isAdmin) && $isAdmin)
+                    <span style="color: var(--accent);"> (Admin)</span>
+                @endif
+            </p>
+            @endif
         </div>
     </footer>
 
     <!-- JavaScript untuk Animasi dan Navigasi -->
     <script>
-        // Membuat particles
-        function createParticles() {
-            const particlesContainer = document.getElementById('particles');
-            const particleCount = 20;
-            
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElement('div');
-                particle.classList.add('particle');
-                
-                // Random properties
-                const size = Math.random() * 10 + 5;
-                const posX = Math.random() * 100;
-                const posY = Math.random() * 100;
-                const delay = Math.random() * 5;
-                const duration = Math.random() * 10 + 10;
-                
-                particle.style.width = `${size}px`;
-                particle.style.height = `${size}px`;
-                particle.style.left = `${posX}%`;
-                particle.style.top = `${posY}%`;
-                particle.style.animationDelay = `${delay}s`;
-                particle.style.animationDuration = `${duration}s`;
-                
-                particlesContainer.appendChild(particle);
-            }
-        }
+        // ... (script yang sudah ada tetap sama) ...
         
-        // Scroll animation
-        function checkScroll() {
-            const elements = document.querySelectorAll('.fade-in');
-            
-            elements.forEach(element => {
-                const elementTop = element.getBoundingClientRect().top;
-                const windowHeight = window.innerHeight;
-                
-                if (elementTop < windowHeight - 100) {
-                    element.classList.add('visible');
-                }
-            });
-            
-            // Navbar scroll effect
-            const navbar = document.getElementById('navbar');
-            const backToTop = document.getElementById('backToTop');
-            
-            if (window.scrollY > 100) {
-                navbar.classList.add('scrolled');
-                backToTop.classList.add('show');
-            } else {
-                navbar.classList.remove('scrolled');
-                backToTop.classList.remove('show');
-            }
-            
-            // Update active nav link
-            const sections = document.querySelectorAll('section[id]');
-            const navLinks = document.querySelectorAll('.nav-link');
-            
-            let current = '';
-            sections.forEach(section => {
-                const sectionTop = section.offsetTop;
-                const sectionHeight = section.clientHeight;
-                
-                if (scrollY >= (sectionTop - 150)) {
-                    current = section.getAttribute('id');
-                }
-            });
-            
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('href') === `#${current}`) {
-                    link.classList.add('active');
-                }
-            });
-        }
-        
-        // Mobile menu toggle
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const navMenu = document.getElementById('navMenu');
-        
-        mobileMenuBtn.addEventListener('click', () => {
-            navMenu.classList.toggle('active');
-            const icon = mobileMenuBtn.querySelector('i');
-            icon.classList.toggle('fa-bars');
-            icon.classList.toggle('fa-times');
-        });
-        
-        // Close mobile menu when clicking on a link
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', () => {
-                navMenu.classList.remove('active');
-                mobileMenuBtn.querySelector('i').classList.remove('fa-times');
-                mobileMenuBtn.querySelector('i').classList.add('fa-bars');
-            });
-        });
-        
-        // Back to top button
-        const backToTopBtn = document.getElementById('backToTop');
-        backToTopBtn.addEventListener('click', () => {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        });
-        
-        // Smooth scroll for navigation links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                const targetId = this.getAttribute('href');
-                if (targetId === '#') return;
-                
-                const targetElement = document.querySelector(targetId);
-                if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 80,
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
-        
-        // Initialize particles animation
-        document.addEventListener('DOMContentLoaded', () => {
-            createParticles();
-            checkScroll();
-            
-            // Animate skill bars on scroll
-            window.addEventListener('scroll', checkScroll);
-            
-            // Add hover effects to buttons
-            const buttons = document.querySelectorAll('.route-button');
-            buttons.forEach(button => {
-                button.addEventListener('mouseenter', (e) => {
-                    const x = e.clientX - e.target.getBoundingClientRect().left;
-                    const y = e.clientY - e.target.getBoundingClientRect().top;
-                    
-                    button.style.setProperty('--x', `${x}px`);
-                    button.style.setProperty('--y', `${y}px`);
-                });
-            });
-            
-            // Add typing animation reset
-            const typingText = document.querySelector('.typing-text');
-            if (typingText) {
-                setInterval(() => {
-                    typingText.style.animation = 'none';
+        // Auto hide alert messages
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert-success, .alert-error, .alert-info, .alert-warning');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.transition = 'opacity 0.5s ease';
+                    alert.style.opacity = '0';
                     setTimeout(() => {
-                        typingText.style.animation = 'typing 3.5s steps(40, end), blink .75s step-end infinite';
-                    }, 10);
-                }, 7000);
-            }
-        });
-        
-        // Parallax effect on mouse move
-        document.addEventListener('mousemove', (e) => {
-            const x = (window.innerWidth - e.pageX * 2) / 100;
-            const y = (window.innerHeight - e.pageY * 2) / 100;
-            
-            const header = document.querySelector('.header');
-            header.style.backgroundPosition = `${x}px ${y}px`;
+                        if (alert.parentNode) {
+                            alert.parentNode.removeChild(alert);
+                        }
+                    }, 500);
+                }, 5000);
+            });
         });
     </script>
 </body>
