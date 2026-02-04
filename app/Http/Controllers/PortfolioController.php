@@ -28,7 +28,7 @@ class PortfolioController extends Controller
 
     // Data default portofolio
     private $defaultData = [
-        'fotoprofil' => 'https://cdn.discordapp.com/attachments/1256123329505660938/1460886503625592924/Screenshot_2025-06-08_002525.png?ex=6977b554&is=697663d4&hm=1849d437440bfd140731bafc0b76b28212775150627cda7350017a4e44dd351b',
+        'fotoprofil' => 'https://cdn.discordapp.com/attachments/1256123329505660938/1460886503625592924/Screenshot_2025-06-08_002525.png?ex=697ba9d4&is=697a5854&hm=c63531dc298593448e403b8d79c917a634d0aa5e8d43a1fab2faf77068fabc44',
         'name' => 'Ibni Abiyyu',
         'description' => 'Halo, saya Ibni Abiyyu, seorang Software Engineer dengan passion di bidang pengembangan perangkat lunak dan teknologi inovatif.',
         'github_url' => 'https://github.com/PPLG-SMKTI-27/uuk-ganjil-ibni-abiyyu',
@@ -67,7 +67,7 @@ class PortfolioController extends Controller
 
     public function index(Request $request)
     {
-        // Ambil data dari session jika ada (untuk edit), jika tidak gunakan default
+        // Ambil data dari session (untuk edit mode)
         $portfolioData = $this->getPortfolioData($request);
         
         $data = array_merge($portfolioData, [
