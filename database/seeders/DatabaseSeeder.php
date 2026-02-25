@@ -1,24 +1,17 @@
 <?php
+// database/seeders/DatabaseSeeder.php
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
-   public function run(): void
-{
-    $this->call([
-        ProjectSeeder::class,
-        SkillSeeder::class,
-    ]);
-}
-
+    public function run(): void
+    {
+        $this->call([
+            PortfolioSeeder::class, // Tambahkan PortfolioSeeder
+            SkillSeeder::class,
+        ]);
+    }
 }

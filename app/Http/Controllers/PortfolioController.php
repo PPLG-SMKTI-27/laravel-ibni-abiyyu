@@ -1,9 +1,11 @@
 <?php
-// app/Http\Controllers\PortfolioController.php
+// app/Http/Controllers/PortfolioController.php
 
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Portfolio;
+use App\Models\Skill;
 
 class PortfolioController extends Controller
 {
@@ -12,25 +14,25 @@ class PortfolioController extends Controller
         [
             'username' => 'ibni',
             'password' => 'password123',
-            'role' => 'admin' // Tambahkan role admin
+            'role' => 'admin'
         ],
         [
             'username' => 'admin',
             'password' => 'admin123',
-            'role' => 'admin' // Tambahkan role admin
+            'role' => 'admin'
         ],
         [
             'username' => 'user',
             'password' => 'user123',
-            'role' => 'user' // Role biasa
+            'role' => 'user'
         ]
     ];
 
-    // Data default portofolio
+    // Data default portofolio (untuk fallback jika database kosong)
     private $defaultData = [
-        'fotoprofil' => 'https://cdn.discordapp.com/attachments/1256123329505660938/1460886503625592924/Screenshot_2025-06-08_002525.png?ex=697ba9d4&is=697a5854&hm=c63531dc298593448e403b8d79c917a634d0aa5e8d43a1fab2faf77068fabc44',
-        'name' => 'Ibni Abiyyu',
-        'description' => 'Halo, saya Ibni Abiyyu, seorang Software Engineer dengan passion di bidang pengembangan perangkat lunak dan teknologi inovatif.',
+        'fotoprofil' => 'https://cdn.discordapp.com/attachments/1256123329505660938/1460886503625592924/Screenshot_2025-06-08_002525.png?ex=699feb14&is=699e9994&hm=d343de924bd89500ab705f42c386dcfd8448ffd0b0ab1453061d43ab71905b51',
+        'name' => 'Dari Controller (nama)',
+        'description' => 'Dari Controller (deskripsi)',
         'github_url' => 'https://github.com/PPLG-SMKTI-27/uuk-ganjil-ibni-abiyyu',
         'tiktok_url' => 'https://www.tiktok.com/@meidoragon_',
         'email' => '24_ibni@student.smkti.net',
@@ -65,39 +67,81 @@ class PortfolioController extends Controller
         ]
     ];
 
+    /**
+     * Menampilkan halaman utama portofolio
+     */
     public function index(Request $request)
     {
-        // Ambil data dari session (untuk edit mode)
-        $portfolioData = $this->getPortfolioData($request);
-        
-        $data = array_merge($portfolioData, [
-            // Status login dari session
+        // Load portfolio dengan skills-nya
+        $portfolio = Portfolio::with('skills')->first();
+
+        if (!$portfolio) {
+            return view('portofolio', [
+                'fotoprofil' => $this->defaultData['fotoprofil'],
+                'name' => $this->defaultData['name'],
+                'description' => $this->defaultData['description'],
+                'github_url' => $this->defaultData['github_url'],
+                'tiktok_url' => $this->defaultData['tiktok_url'],
+                'email' => $this->defaultData['email'],
+                'nomortelp' => $this->defaultData['nomortelp'],
+                'lokasi' => $this->defaultData['lokasi'],
+                'pendidikan' => $this->defaultData['pendidikan'],
+                'skills' => $this->defaultData['skills'],
+                'isLoggedIn' => $request->session()->get('isLoggedIn', false),
+                'isAdmin' => $request->session()->get('isAdmin', false),
+                'loggedInUser' => $request->session()->get('loggedInUser', null),
+                'editMode' => $request->session()->get('editMode', false),
+                'usingDefaultData' => true
+            ]);
+        }
+
+        // Konversi skills collection ke array dengan format yang sama seperti defaultData
+        $skills = $portfolio->skills->map(function($skill) {
+            return [
+                'name' => $skill->name,
+                'icon' => $skill->icon ?? $this->getDefaultIcon($skill->name),
+                'percentage' => $skill->percentage,
+                'delay' => $skill->delay ?? 0.1
+            ];
+        })->toArray();
+
+        return view('portofolio', [
+            'fotoprofil' => $portfolio->fotoprofil ?? $this->defaultData['fotoprofil'],
+            'name' => $portfolio->name ?? $this->defaultData['name'],
+            'description' => $portfolio->description ?? $this->defaultData['description'],
+            'github_url' => $portfolio->github_url ?? $this->defaultData['github_url'],
+            'tiktok_url' => $portfolio->tiktok_url ?? $this->defaultData['tiktok_url'],
+            'email' => $portfolio->email ?? $this->defaultData['email'],
+            'nomortelp' => $portfolio->nomortelp ?? $this->defaultData['nomortelp'],
+            'lokasi' => $portfolio->lokasi ?? $this->defaultData['lokasi'],
+            'pendidikan' => $portfolio->pendidikan ?? $this->defaultData['pendidikan'],
+            'skills' => !empty($skills) ? $skills : $this->defaultData['skills'],
             'isLoggedIn' => $request->session()->get('isLoggedIn', false),
             'isAdmin' => $request->session()->get('isAdmin', false),
             'loggedInUser' => $request->session()->get('loggedInUser', null),
-            'loginMessage' => $request->session()->get('loginMessage', ''),
-            'editMode' => $request->session()->get('editMode', false)
+            'editMode' => $request->session()->get('editMode', false),
+            'usingDefaultData' => false
         ]);
-        
-        // Hapus pesan setelah ditampilkan
-        $request->session()->forget('loginMessage');
-        
-        return view('portofolio', $data);
     }
 
-    // Method untuk menampilkan halaman login
+    /**
+     * Menampilkan halaman login
+     */
     public function showLogin()
     {
-        // Kirim data name juga ke view login
+        $portfolio = Portfolio::first();
+        
         $data = [
-            'name' => 'Ibni Abiyyu',
+            'name' => $portfolio->name ?? $this->defaultData['name'],
             'isLoggedIn' => false
         ];
         
         return view('login', $data);
     }
 
-    // Method untuk proses login
+    /**
+     * Proses login
+     */
     public function login(Request $request)
     {
         $username = $request->input('username');
@@ -116,21 +160,24 @@ class PortfolioController extends Controller
             return redirect('/');
         } else {
             // Jika salah, kembali ke halaman login dengan pesan error
-            $request->session()->flash('error', 'Username atau password salah!');
-            return redirect('/login');
+            return redirect('/login')->with('error', 'Username atau password salah!');
         }
     }
 
-    // Method untuk logout
+    /**
+     * Proses logout
+     */
     public function logout(Request $request)
     {
         // Hapus session login
         $request->session()->forget(['isLoggedIn', 'isAdmin', 'loggedInUser', 'editMode']);
-        $request->session()->put('loginMessage', 'Logout berhasil!');
+        $request->session()->flash('success', 'Logout berhasil!');
         return redirect('/');
     }
 
-    // Method untuk toggle edit mode (admin only)
+    /**
+     * Toggle edit mode (admin only)
+     */
     public function toggleEdit(Request $request)
     {
         if (!$request->session()->get('isAdmin', false)) {
@@ -144,61 +191,155 @@ class PortfolioController extends Controller
         return redirect('/')->with('success', $message);
     }
 
-    // Method untuk update data portofolio (admin only)
+    /**
+     * Update data portofolio (admin only)
+     */
     public function updatePortfolio(Request $request)
     {
         if (!$request->session()->get('isAdmin', false)) {
             return redirect('/')->with('error', 'Akses ditolak!');
         }
-        
-        // Ambil data dari form
-        $updatedData = $request->only([
-            'name', 'description', 'email', 'nomortelp', 
-            'lokasi', 'pendidikan', 'github_url', 'tiktok_url'
+
+        // Validasi input
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'required|string',
+            'email' => 'nullable|email',
+            'nomortelp' => 'nullable|string',
+            'lokasi' => 'nullable|string',
+            'pendidikan' => 'nullable|string',
+            'github_url' => 'nullable|url',
+            'tiktok_url' => 'nullable|url',
+            'skills.name.*' => 'nullable|string',
+            'skills.percentage.*' => 'nullable|integer|min:0|max:100'
         ]);
+
+        // Cari atau buat portfolio baru
+        $portfolio = Portfolio::first();
         
-        // Update skills jika ada
-        if ($request->has('skills')) {
-            $skills = [];
+        $data = [
+            'name' => $request->name,
+            'description' => $request->description,
+            'email' => $request->email,
+            'nomortelp' => $request->nomortelp,
+            'lokasi' => $request->lokasi,
+            'pendidikan' => $request->pendidikan,
+            'github_url' => $request->github_url,
+            'tiktok_url' => $request->tiktok_url,
+            'fotoprofil' => $this->defaultData['fotoprofil'] // Tetap pakai foto default
+        ];
+
+        if (!$portfolio) {
+            $portfolio = Portfolio::create($data);
+            $message = 'Data portofolio berhasil dibuat!';
+        } else {
+            $portfolio->update($data);
+            $message = 'Data portofolio berhasil diupdate!';
+        }
+
+        // Hapus skill lama
+        $portfolio->skills()->delete();
+
+        // Simpan skill baru
+        if ($request->has('skills.name') && $request->has('skills.percentage')) {
             $skillNames = $request->input('skills.name', []);
             $skillPercentages = $request->input('skills.percentage', []);
             
             foreach ($skillNames as $index => $name) {
                 if (!empty($name)) {
-                    $skills[] = [
+                    // Tentukan icon berdasarkan nama skill
+                    $icon = $this->getDefaultIcon($name);
+                    
+                    // Hitung delay berdasarkan urutan
+                    $delay = 0.1 * ($index + 1);
+                    
+                    Skill::create([
+                        'portfolio_id' => $portfolio->id,
                         'name' => $name,
-                        'icon' => 'fas fa-code', // Default icon
+                        'icon' => $icon,
                         'percentage' => intval($skillPercentages[$index] ?? 0),
-                        'delay' => ($index + 1) * 0.1
-                    ];
+                        'delay' => $delay
+                    ]);
                 }
             }
-            
-            $updatedData['skills'] = $skills;
         }
-        
-        // Simpan ke session
-        $portfolioData = $request->session()->get('portfolioData', $this->defaultData);
-        $portfolioData = array_merge($portfolioData, $updatedData);
-        $request->session()->put('portfolioData', $portfolioData);
-        
-        return redirect('/')->with('success', 'Data portofolio berhasil diperbarui!');
+
+        // Nonaktifkan edit mode setelah menyimpan
+        $request->session()->put('editMode', false);
+
+        return redirect('/')->with('success', $message . ' Data tersimpan di database.');
     }
 
-    // Method untuk reset ke data default
+    /**
+     * Reset ke data default (admin only)
+     */
     public function resetPortfolio(Request $request)
     {
         if (!$request->session()->get('isAdmin', false)) {
             return redirect('/')->with('error', 'Akses ditolak!');
         }
         
-        $request->session()->forget('portfolioData');
-        return redirect('/')->with('success', 'Data berhasil direset ke default!');
+        // Hapus semua data portfolio dan skills
+        $portfolio = Portfolio::first();
+        if ($portfolio) {
+            $portfolio->skills()->delete();
+            $portfolio->delete();
+        }
+        
+        // Nonaktifkan edit mode
+        $request->session()->put('editMode', false);
+        
+        return redirect('/')->with('success', 'Data berhasil direset ke default! Silakan refresh halaman.');
+    }
+
+    /**
+     * Import data default ke database (admin only)
+     */
+    public function importDefaultData(Request $request)
+    {
+        if (!$request->session()->get('isAdmin', false)) {
+            return redirect('/')->with('error', 'Akses ditolak!');
+        }
+
+        // Hapus data lama
+        $oldPortfolio = Portfolio::first();
+        if ($oldPortfolio) {
+            $oldPortfolio->skills()->delete();
+            $oldPortfolio->delete();
+        }
+
+        // Buat portfolio baru dengan data default
+        $portfolio = Portfolio::create([
+            'fotoprofil' => $this->defaultData['fotoprofil'],
+            'name' => $this->defaultData['name'],
+            'description' => $this->defaultData['description'],
+            'github_url' => $this->defaultData['github_url'],
+            'tiktok_url' => $this->defaultData['tiktok_url'],
+            'email' => $this->defaultData['email'],
+            'nomortelp' => $this->defaultData['nomortelp'],
+            'lokasi' => $this->defaultData['lokasi'],
+            'pendidikan' => $this->defaultData['pendidikan'],
+        ]);
+
+        // Buat skills dari data default
+        foreach ($this->defaultData['skills'] as $skillData) {
+            Skill::create([
+                'portfolio_id' => $portfolio->id,
+                'name' => $skillData['name'],
+                'icon' => $skillData['icon'],
+                'percentage' => $skillData['percentage'],
+                'delay' => $skillData['delay']
+            ]);
+        }
+
+        return redirect('/')->with('success', 'Data default berhasil diimpor ke database!');
     }
 
     // ========== HELPER METHODS ==========
     
-    // Method helper untuk mencari user
+    /**
+     * Mencari user berdasarkan username dan password
+     */
     private function findUser($username, $password)
     {
         foreach ($this->users as $user) {
@@ -209,10 +350,39 @@ class PortfolioController extends Controller
         return false;
     }
     
-    // Method helper untuk mendapatkan data portofolio
-    private function getPortfolioData(Request $request)
+    /**
+     * Mendapatkan icon default berdasarkan nama skill
+     */
+    private function getDefaultIcon($skillName)
     {
-        // Ambil dari session jika ada, jika tidak gunakan default
-        return $request->session()->get('portfolioData', $this->defaultData);
+        $icons = [
+            'frontend' => 'fas fa-code',
+            'backend' => 'fas fa-server',
+            'mobile' => 'fas fa-mobile-alt',
+            'database' => 'fas fa-database',
+            'laravel' => 'fab fa-laravel',
+            'php' => 'fab fa-php',
+            'javascript' => 'fab fa-js',
+            'python' => 'fab fa-python',
+            'react' => 'fab fa-react',
+            'vue' => 'fab fa-vuejs',
+            'angular' => 'fab fa-angular',
+            'html' => 'fab fa-html5',
+            'css' => 'fab fa-css3-alt',
+            'git' => 'fab fa-git-alt',
+            'docker' => 'fab fa-docker',
+            'aws' => 'fab fa-aws',
+            'wordpress' => 'fab fa-wordpress',
+        ];
+
+        $skillNameLower = strtolower($skillName);
+        
+        foreach ($icons as $key => $icon) {
+            if (strpos($skillNameLower, $key) !== false) {
+                return $icon;
+            }
+        }
+        
+        return 'fas fa-code'; // default icon
     }
 }
